@@ -1,0 +1,16 @@
+asm_directive=108,39,0
+asm_label=108,39,0
+c_keyword=108,39,0
+c_numbers=170,0,74
+c_type=42,135,140
+eclipse.preferences.version=1
+pp_directive=140,77,42
+semanticHighlighting.function.enabled=true
+semanticHighlighting.functionDeclaration.color=35,133,0
+semanticHighlighting.method.color=145,193,35
+semanticHighlighting.method.enabled=true
+semanticHighlighting.methodDeclaration.color=56,184,39
+sourceHoverBackgroundColor=255,255,255
+spelling_locale_initialized=true
+useAnnotationsPrefPage=true
+useQuickDiffPrefPage=true

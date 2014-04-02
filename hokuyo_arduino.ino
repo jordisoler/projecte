@@ -1,102 +1,76 @@
 /*
 * Rutina de control a baix nivell d'un escaner 3D a partir d'un LIDAR
 *
+* Esquema principal V1
+*
 * Funcionalitats:
-*   - Comunicació amb ros:
-*       + Rep un missatge buit quan s'ha de fer un bot.
-*       + Rep el missatge propi 'CodiGir' indicant el stepping.
-*       + Envia un missatge buit quan el sensor fotoelèctric reconeix 
-*         el punt singular.
-*   - Enviar les senyals apropiades a les entrades 'step', 'dir', 'ms1',
-*     'ms2' i 'ms3' segons les dades rebudes a través de ROS.
-*   
-* 26-03-2014
+*   No homing, paràmetres no implementats, 1:16 step, step a 800Hz (4s/volta), no senyal de volta.
+*
+* Compila, no provat amb PAP.
+*
+* 2-04-2014
 */
 
 
 #include <ros.h>
 #include <ros/time.h>
-#include <panell_control/CodiGir.h>
+//#include <lidar_scan/CodiGir.h>
 #include <std_msgs/Empty.h>
+#include "TimerOne.h"
 
 #define entradaOpb A0
-#define duradaPols 50
+#define duradaPols 2
+#define periode 1250 //800Hz
 
 const int bot = 13; //Pin de STEP
-const int ms1 = 11; //Pin de MS1
-const int ms2 = 10; //Pin de MS2
-const int ms3 = 9;  //Pin de MS3
 const int dir = 7;  //Pin de direccio
-const int obp = 8;  //Pin del díode del sensor fotorlèctric.
-const int limlectura = 40;
-int lecturaOpb;
+const int obp = 8;  //Pin del díode del sensor fotoelèctric.
+//const int limlectura = 40;
+//int lecturaOpb;
 
-
-void resposta(const panell_control::CodiGir& missatge){
+/*
+void configurar(const lidar_scan::CodiGir& missatge){
   canviarStepping(missatge.bots);
 }
+*/
 
-void actua(const std_msgs::Empty& missatge){
-    digitalWrite(bot, HIGH);
-    delayMicroseconds(duradaPols);
-    digitalWrite(bot, LOW);
-}
-
-std_msgs::Empty msg;
+std_msgs::Empty bota_msg;
+std_msgs::Empty flanc_msg;
 ros::NodeHandle nh;
-ros::Subscriber<panell_control::CodiGir> sub("/gir", &resposta );
-ros::Subscriber<std_msgs::Empty> bota("/controlBot", &actua);
-ros::Publisher flanc("/home", &msg);
+//ros::Subscriber<lidar_scan::CodiGir> config_sub("/girCongif", &configurar );
+ros::Publisher flanc("/home", &flanc_msg);
+ros::Publisher bota("/syncPap", &bota_msg);
+int num = 0;
 
-
-
-void canviarStepping(int n){
-  switch(n){
-    case 2:      //Mig step
-      digitalWrite(ms1, HIGH);
-      digitalWrite(ms2, LOW);
-      digitalWrite(ms3, LOW);
-      break;
-    case 3:      //Quart de step
-      digitalWrite(ms1, LOW);
-      digitalWrite(ms2, HIGH);
-      digitalWrite(ms3, LOW);
-      break;
-    case 4:      //Octau de Step
-      digitalWrite(ms1, HIGH);
-      digitalWrite(ms2, HIGH);
-      digitalWrite(ms3, LOW);
-      break;
-    case 5:      //Setzau de Step
-      digitalWrite(ms1, HIGH);
-      digitalWrite(ms2, HIGH);
-      digitalWrite(ms3, HIGH);
-      break;
-    default:     //Full Step
-      digitalWrite(ms1, LOW);
-      digitalWrite(ms2, LOW);
-      digitalWrite(ms3, LOW);
-      break;
-  }
-}
 
 void setup(){
   pinMode(bot, OUTPUT);
-  pinMode(ms1, OUTPUT);
-  pinMode(ms2, OUTPUT);
-  pinMode(obp, OUTPUT);
+  //pinMode(obp, OUTPUT);
   pinMode(dir, OUTPUT);
   digitalWrite(dir, LOW);
   nh.initNode();
-  nh.subscribe(sub);
-  nh.subscribe(bota);
+  //nh.subscribe(config_sub);
+  nh.advertise(bota);
   nh.advertise(flanc);
+  Timer1.initialize(periode); 
+  Timer1.attachInterrupt(performStep);
+}
+
+void performStep(){
+  digitalWrite(bot, HIGH);
+  delayMicroseconds(duradaPols);
+  digitalWrite(bot, LOW);
+  num++;
 }
 
 void loop(){
-  lecturaOpb=analogRead(entradaOpb);
-  if(lecturaOpb > limlectura){
-      flanc.publish(&msg);
+  if(num > 20){
+      bota.publish(&bota_msg);
+      num=0;
   }
+  //lecturaOpb=analogRead(entradaOpb);
+  //if(lecturaOpb > limlectura){
+  //    flanc.publish(&flanc_msg);
+  //}
   nh.spinOnce();
 }
