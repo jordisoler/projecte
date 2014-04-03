@@ -2,8 +2,13 @@
 *	Node per dirigir l'escaner 3D desde ROS
 *
 *
-*	Esquema principal V1
+*	Esquema principal V2
 *	
+*	Poques desenes de microsegons per a publicar transformada que arriba.
+*	Límit de freqüència de gir.
+*	Paràmetres:
+*		-Frequència de gir.
+*		
 *	Provat sense PAP.
 *	
 *	2-04-2014
@@ -12,23 +17,25 @@
 #include "ros/ros.h"
 #include "std_msgs/Empty.h"
 #include "tf/transform_broadcaster.h"
-//#include "lidar_scan/CodiGir.h"
+#include "lidar_scan/CodiGir.h"
 #include <math.h>
 
 #define coorx 0.0865
 #define coory 0.08
-#define coorz 0.0 //Modificar
+#define coorz 0.0
 #define angleInicial 0.0
 #define tempsOffset 0.0
-#define frec 800
+#define periodeDefecte 1500
+#define maxPeriode 25000	// hokuyo: 40s/volta -> un escaneig per step
+#define minPeriode 1250		// hokuyo: 2s/volta
 using namespace std;
 
-const int inca = frec*M_PI/64000;
+const int inca = 15.625*M_PI/periodeDefecte;
 class estatPap
 {
 public:
 	bool publicable, preparada;
-	
+
 	estatPap()
 	{
 		angle = angleInicial;
@@ -36,7 +43,7 @@ public:
 		preparada = false;
 		dAngle = inca;
 	}
-	
+
 	estatPap(double delta)
 	{
 		angle = angleInicial;
@@ -44,19 +51,19 @@ public:
 		preparada = false;
 		dAngle = delta;
 	}
-	
+
 	void resetejar()
 	{
 		publicable = false;
 		preparada = false;
 	}
-	
+
 	void preparar()
 	{
 		angle = angle + dAngle;
 		preparada = true;
 	}
-	
+
 	tf::Transform transform()
 	{
 		tf::Transform tr;
@@ -66,13 +73,13 @@ public:
 		tr.setOrigin( tf::Vector3(coorx, coory, coorz) );
 		return tr;
 	}
-	
+
 	void timeOut(const std_msgs::Empty& msg)
 	{
 		publicable = true;
 	}
 private:
-	
+
 	double angle, dAngle;
 };
 
@@ -84,15 +91,47 @@ void publicar(tf::Transform tr)
 
 int main(int argc, char **argv)
 {
-	double increment = 800*M_PI/64000;
-	ROS_INFO("He enviat: %f", increment);
-	estatPap estat = estatPap(increment);
+	int periode;
+	
 	ros::init(argc, argv, "lidar_scan_node");
 	ros::NodeHandle n;
-	//ros::Publisher gir_pub = n.advertise<lidar_scan::CodiGir>("/gir", 10);
-	ros::Subscriber bot_sub = n.subscribe("/syncPap", 5, &estatPap::timeOut, &estat);
+	ros::NodeHandle nh("~");
+	ros::Publisher gir_pub = n.advertise<lidar_scan::CodiGir>("/girConfig", 10);
+	
 	//ros::Subscriber flanc_sub;
 	tf::Transform t;
+	lidar_scan::CodiGir gir_msg;
+
+	if (nh.getParam("periode", periode))
+	{
+		if(periode < minPeriode){
+			periode = minPeriode;
+			ROS_INFO("El periode de stepping ha de ser, com a minim: %u. Aquest ha estat el que s'ha establert.", minPeriode);
+		}else if(periode > maxPeriode){
+			periode = maxPeriode;
+			ROS_INFO("El periode de stepping ha de ser, com a maxim: %u. Aquest ha estat el que s'ha establert.", maxPeriode);
+		}else{
+			ROS_INFO("S'ha inicilitzat l'escaneig al periode: %u", periode);
+		}
+		
+	}else
+	{
+		periode = periodeDefecte;
+		ROS_INFO("S'ha inicilitzat l'escaneig al periode per defecte: %u", periode);
+	}
+	
+	double increment = 15.625*M_PI/periode;
+	estatPap estat = estatPap(increment);
+	ros::Subscriber bot_sub = n.subscribe("/syncPap", 5, &estatPap::timeOut, &estat);
+	gir_msg.per = periode;
+	
+	int nio=0;
+	while(ros::ok() && nio<=1){
+		sleep(1);
+		gir_pub.publish(gir_msg);
+		nio++;
+	}
+	
 	while (ros::ok())
 	{
 		if(!estat.preparada)
@@ -105,20 +144,10 @@ int main(int argc, char **argv)
 			publicar(t);
 			estat.resetejar();
 		}
-		
+
 		ros::spinOnce();
 	}
-	
-	
+
+
 	return 0;
 }
-
-
-
-
-
-
-
-
-
-
