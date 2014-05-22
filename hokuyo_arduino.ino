@@ -10,7 +10,7 @@
 *
 * Vermell, blau, verd, negre
 *
-* 4-04-2014
+* 11-5-2014
 */
 
 
@@ -36,7 +36,7 @@ const int p_enable = 6;
 const int p_fault = 5;
 const int p_obp = 4;
 
-const int limlectura = 240;
+const int limlectura = 24;
 int lecturaOpb;
 int num;
 int perScan;
@@ -52,13 +52,16 @@ void performStep(){
 void configurar(const lidar_scan::CodiGir& missatge){
     Timer1.stop();
     Timer1.detachInterrupt();
+    
     if(!casa){
         homing();
     }
-    perScan = 25000/missatge.per;
-    Timer1.initialize(missatge.per);
-    Timer1.attachInterrupt(performStep);
-    casa = false;
+    if(missatge.per != 0){
+        perScan = 25000/missatge.per;
+        Timer1.initialize(missatge.per);
+        Timer1.attachInterrupt(performStep);
+        casa = false;
+    }
 }
 
 std_msgs::Empty bota_msg;
@@ -74,20 +77,11 @@ void homing(){
     while(lecturaOpb > limlectura && i < 40){
         performStep();
         lecturaOpb=analogRead(entradaOpb);
-        delay(10);
+        delay(5);
         if(lecturaOpb > limlectura){
             i++;
         }
     }
-    /*
-    lecturaOpb=analogRead(entradaOpb);
-    if(lecturaOpb>limlectura){
-        for(int i=0; i<40; i++){
-            performStep();
-            delay(2);
-        }
-        
-    }*/
     while(lecturaOpb < limlectura){
         performStep();
         lecturaOpb=analogRead(entradaOpb);
@@ -125,7 +119,6 @@ void setup(){
     nh.advertise(bota);
     nh.advertise(flanc);
     perScan = 25000/periodeDef;
-    //homing();
     num=0;
 }
 
