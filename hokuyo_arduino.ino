@@ -1,22 +1,12 @@
 /*
-* Rutina de control a baix nivell d'un escaner 3D a partir d'un LIDAR
-*
-* Esquema principal V2
-*
-* Funcionalitats:
-*   No homing, 1:16 step, frequència desde lidar_scan_node, no senyal de volta.
-*
-* Compila, provat en arduino, sense PAP.
-*
-* Vermell, blau, verd, negre
-*
-* 11-5-2014
+* 30-5-2014
 */
 
 
 #include <ros.h>
 #include <ros/time.h>
 #include <lidar_scan/CodiGir.h>
+#include <std_msgs/UInt32.h>
 #include <std_msgs/Empty.h>
 #include <TimerOne.h>
 
@@ -64,7 +54,7 @@ void configurar(const lidar_scan::CodiGir& missatge){
     }
 }
 
-std_msgs::Empty bota_msg;
+std_msgs::UInt32 bota_msg;
 std_msgs::Empty flanc_msg;
 ros::NodeHandle nh;
 ros::Subscriber<lidar_scan::CodiGir> config_sub("girConfig", &configurar );
@@ -123,7 +113,9 @@ void setup(){
 }
 
 void loop(){
+    
     if(num > perScan){
+        bota_msg.data = num;
         bota.publish(&bota_msg);
         num = 0;
         lecturaOpb=analogRead(entradaOpb);
