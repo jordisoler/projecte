@@ -98,7 +98,7 @@ void setup(){
     digitalWrite(p_dir, LOW);
     digitalWrite(p_sleep, HIGH);
     digitalWrite(p_reset, HIGH);
-    digitalWrite(p_m2, HIGH);
+    digitalWrite(p_m2, LOW);
     digitalWrite(p_m1, HIGH);
     digitalWrite(p_m0, HIGH);
     digitalWrite(p_enable, LOW);

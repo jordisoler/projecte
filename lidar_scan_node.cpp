@@ -1,9 +1,5 @@
 /*
-*	Node per dirigir l'escaner 3D desde ROS
-*
 *	
-*	
-*	25-05-2014
 */
 
 //#include <cstdio>
@@ -13,6 +9,7 @@
 #include "std_msgs/Empty.h"
 #include "std_msgs/UInt32.h"
 #include "sensor_msgs/PointCloud.h"
+#include "sensor_msgs/LaserScan.h"
 #include "lidar_scan/CodiGir.h"
 
 #include "tf/transform_broadcaster.h"
@@ -41,41 +38,40 @@ public:
 		sclient = n_.serviceClient<laser_assembler::AssembleScans>("assemble_scans");
 		
 		angle = angleInicial;
-		primera_vegada = true;
+		primera_vegada = false;
 		viu = true;
 		//aCegues(blinding);
 		periodeActual = periode;
+		incAngle=125*M_PI/4/periode;
 		compte = 0;
 		
-		prova=0;
 		
 		gir_msg.per = periode;
 		gir_msg.header.stamp = ros::Time::now();
 		gir_pub.publish(gir_msg);
 	}
 
-	void casa(const std_msgs::Empty& msg)	{
-		if(ros::Time::now() > darrerFlanc+aCegues){
-			darrerFlanc = ros::Time::now();
+	void casa(const std_msgs::Empty& msg)	{			
+		if(primera_vegada){
 			angle = angleInicial;
-			if(primera_vegada){
-				primera_vegada=false;
-				//Escaneig 3D quan es tenen punts de tot l'espai (mitja volta). Llaç obert.
-				escaneigPeriodic = n_.createTimer(ros::Duration(periodeActual/1250,0), &estatPap::publicarScan, this);
-			}
+			primera_vegada=false;
 		}
 	}
 	
-	void publicarTf(const std_msgs::UInt32& msg){
-		ros::Time tempsArribada = ros::Time::now();
-		int numbots = msg.data;
-		angle = angle + numbots*M_PI/800;
+	//void syncCallback(const std_msgs::UInt32& msg){
+	//	
+	//}
+	
+	void laserCallback(const sensor_msgs::LaserScan& scan){
+		if (!primera_vegada){
+			ros::Time temps = scan.header.stamp;
+			publicarTf(temps);
+		}
+	}
+	
+	void publicarTf(ros::Time temps){
+		angle = angle + incAngle;
 		
-		//prova++;
-		//if(prova>100){
-			ROS_INFO("L'angle es: %f", angle);
-		//	prova=0;
-		//}
 		tf::Transform tr;
 		tf::Quaternion q;
 		q.setRPY(-angle*2, -M_PI/2, 0);
@@ -83,7 +79,7 @@ public:
 		tr.setOrigin( tf::Vector3(coorx, coory, coorz) );
 				
 		static tf::TransformBroadcaster emisor;
-		emisor.sendTransform(tf::StampedTransform(tr, tempsArribada + ros::Duration(tempsOffset), "base_laser", "hokuyo"));
+		emisor.sendTransform(tf::StampedTransform(tr, temps + ros::Duration(tempsOffset), "base_laser", "hokuyo"));
 	}
 	
 	void publicarScan(const ros::TimerEvent& e){
@@ -120,13 +116,13 @@ public:
 	bool viu;
 	
 private:	
-	double angle;
+	double angle, incAngle;
 	bool primera_vegada;
 	int compte;
-	int prova;
+	int passos;
 	int periodeActual;
 	ros::Time darrerFlanc;
-	//ros::Duration aCegues;
+	ros::Duration aCegues;
 	ros::Timer escaneigPeriodic;
 	ros::NodeHandle n_;
 	ros::ServiceClient sclient;
@@ -157,6 +153,7 @@ int main(int argc, char **argv){
 		}else{
 			ROS_INFO("S'ha inicilitzat l'escaneig al periode: %u", periode);
 		}
+		
 	}else {
 		periode = periodeDefecte;
 		ROS_INFO("S'ha inicilitzat l'escaneig al periode per defecte: %u", periode);
@@ -164,8 +161,9 @@ int main(int argc, char **argv){
 	
 	estatPap estat = estatPap(periode);
 	
-	ros::Subscriber bot_sub = n.subscribe("/syncPap", 5, &estatPap::publicarTf, &estat);
+	//ros::Subscriber bot_sub = n.subscribe("/syncPap", 5, &estatPap::syncCallback, &estat);
 	ros::Subscriber flanc_sub = n.subscribe("/home", 5, &estatPap::casa, &estat);
+	ros::Subscriber laser_sub = n.subscribe("/most_intense", 5, &estatPap::laserCallback, &estat);
 
 	while(estat.viu && ros::ok()){
 		ros::spinOnce();
@@ -173,3 +171,6 @@ int main(int argc, char **argv){
 	
 	return 0;
 }
+
+
+
