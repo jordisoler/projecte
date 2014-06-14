@@ -1,0 +1,18 @@
+<launch>
+	<node pkg="rosbag" type="play" name="interior1" output="screen" args="/home/jordi/bagfiles/compost/i1.bag"/>
+	<node pkg="rosbag" type="play" name="interior2" output="screen" args="/home/jordi/bagfiles/compost/i2.bag"/>
+	<node pkg="rosbag" type="play" name="interior3" output="screen" args="/home/jordi/bagfiles/compost/i3.bag"/>
+	<node pkg="rosbag" type="play" name="interior4" output="screen" args="/home/jordi/bagfiles/compost/i4.bag"/>
+	<node pkg="rosbag" type="play" name="interior5" output="screen" args="/home/jordi/bagfiles/compost/i5.bag"/>
+	<node pkg="rosbag" type="play" name="interior6" output="screen" args="--clock /home/jordi/bagfiles/compost/i6.bag"/>
+
+	<node pkg="lidar_scan" type="jointhedots" name="reconstruccio"/>
+
+	<node pkg="tf" type="static_transform_publisher" name="static_tf1" args="0 0 0 3.05 0 0 ref punt1 10" />
+	<node pkg="tf" type="static_transform_publisher" name="static_tf2" args="0 2.9 0 1.62 0.03 0 ref punt2 10" />
+	<node pkg="tf" type="static_transform_publisher" name="static_tf3" args="0 5.5 0 1.66 0.03 0 ref punt3 10" />
+	<node pkg="tf" type="static_transform_publisher" name="static_tf4" args="0.147 8.29 -0.1 1.6232 0.06 0 ref punt4 10" />
+	<node pkg="tf" type="static_transform_publisher" name="static_tf5" args="2.71 8.1 -0.1 1.57 0 0.01 ref punt5 10" />
+	<node pkg="tf" type="static_transform_publisher" name="static_tf6" args="5.42 8 -0.15 1.57 0 0 ref punt6 10" />
+
+</launch>

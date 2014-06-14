@@ -2,12 +2,14 @@
 	<node type="laser_scan_assembler" pkg="laser_assembler" name="assembler_most_intense">
 		<remap from="scan" to="most_intense"/>
 		<param name="max_scans" type="int" value="1200" />
-		<param name="fixed_frame" type="string" value="base_laser" />
+		<param name="fixed_frame" type="string" value="base_laser" /> <!---Modificar-->
 	</node>
 	<node type="urg_node" pkg="urg_node" name="driver_hokuyo">
 		<param name="ip_address" type="string" value="192.168.0.10"/>
-		<param name="frame_id" type="string" value="hokuyo"/>
+		<param name="frame_id" type="string" value="hokuyo"/> <!---Modificar-->
 		<param name="angle_min" type="double" value="0"/>
 	</node>
 	<node pkg="rosserial_python" type="serial_node.py" args="/dev/ttyUSB0" name="serial_node" respawn="true"/>
+	<node pkg="rviz" type="rviz" name="rviz"/>
+	<node pkg="lidar_scan" type="pc_snapshotter" name="pc_snapshotter"/>
 </launch>
